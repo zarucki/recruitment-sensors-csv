@@ -19,10 +19,10 @@ object SensorLeaderReportsSummarizer extends LazyLogging {
       implicit actorSystem: ActorSystem
   ): Future[SensorLeaderReport] = {
     if (dirFile.isDirectory) {
-      val fileList = dirFile.listFiles((_: File, name: String) => name.endsWith(".csv")).toList
+      val filesWithCSVExtension = dirFile.listFiles((_: File, name: String) => name.endsWith(".csv"))
 
       Source
-        .fromIterator(() => fileList.iterator)
+        .fromIterator(() => filesWithCSVExtension.iterator)
         .mapAsyncUnordered(parallelism) { csvFile =>
           Future.successful(reportFromMeasurements(new CSVReader(csvFile).parsedAs[SensorMeasurement]))
         }
