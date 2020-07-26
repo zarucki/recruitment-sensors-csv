@@ -116,4 +116,36 @@ class SensorLeaderReportsSummarizerTest extends AnyFlatSpec with Matchers with S
   it should "return failure if humidity is not a integer" in {
     csvFormatForSensorMeasurement.parse("s3,adsf").isFailure shouldEqual true
   }
+
+  it should "properly combine two reports" in {
+    val report1 = SensorLeaderReportsSummarizer.reportFromMeasurements(
+      LazyList(
+        SensorMeasurement(SensorId("s1"), Some(1)),
+        SensorMeasurement(SensorId("s1"), Some(2)),
+        SensorMeasurement(SensorId("s2"), Some(5))
+      )
+    )
+
+    val report2 = SensorLeaderReportsSummarizer.reportFromMeasurements(
+      LazyList(
+        SensorMeasurement(SensorId("s1"), None),
+        SensorMeasurement(SensorId("s2"), Some(1)),
+        SensorMeasurement(SensorId("s1"), Some(9))
+      )
+    )
+
+    SensorLeaderReport.combineReports(report1, report2) shouldEqual SensorLeaderReport(
+      Map(
+        SensorId("s1") -> Some(
+          SensorStats(minHumidity = 1, cumulativeAvgHumidity = 4.0, maxHumidity = 9, numberOfValidSamples = 3)
+        ),
+        SensorId("s2") -> Some(
+          SensorStats(minHumidity = 1, cumulativeAvgHumidity = 3.0, maxHumidity = 5, numberOfValidSamples = 2)
+        )
+      ),
+      mergedReports = 2,
+      measurementTotal = 6,
+      invalidMeasurementsCount = 1
+    )
+  }
 }
